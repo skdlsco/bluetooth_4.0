@@ -18,6 +18,8 @@ class MainActivity : AppCompatActivity() {
     var mBluetoothGatt: BluetoothGatt? = null
     var mHandler: Handler = Handler()
     var mBluetoothGattServices: List<BluetoothGattService>? = null
+    var isFrontData = true
+    var string = ""
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -69,45 +71,52 @@ class MainActivity : AppCompatActivity() {
             scanLeDevice(false)
             mBluetoothDevice = device
             runOnUiThread {
-                mBluetoothGatt = mBluetoothDevice?.connectGatt(this@MainActivity, false, mBluetoothGattCallback)
+//                mBluetoothGatt = mBluetoothDevice?.connectGatt(this@MainActivity, false, mBluetoothGattCallback)
+                val intent = Intent(this@MainActivity, BluetoothService::class.java)
+                intent.putExtra("address", device.address)
+                startService(intent)
+
             }
         }
     }
 
-    private val mBluetoothGattCallback = object : BluetoothGattCallback() {
-        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
-            super.onServicesDiscovered(gatt, status)
-            Log.i("onServicesDiscovered", "onServicesDiscovered" + gatt?.services?.size)
-            getServices()
-        }
-
-        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
-            super.onConnectionStateChange(gatt, status, newState)
-            Log.i("onConnectionStateChange", "onConnectionStateChange:$newState")
-            if (newState == BluetoothProfile.STATE_CONNECTED) {
-                runOnUiThread { mBluetoothGatt!!.discoverServices() }
-            }
-        }
-
-        override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
-            super.onCharacteristicRead(gatt, characteristic, status)
-            Log.e("asdf", "" + characteristic!!.value.lastIndex)
-            for (value in characteristic.value) {
-                Log.e("asdf", "" + value)
-            }
-        }
-
-        override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
-            super.onCharacteristicChanged(gatt, characteristic)
-            val data = characteristic!!.value
-            val stringBuilder = StringBuilder(data.size)
-
-            for (value in data) {
-                stringBuilder.append(String.format("%04X ", value))
-            }
-            Log.e("asdfadsf", "" + String(data) + "\n" + stringBuilder.toString())
-        }
-    }
+//    private val mBluetoothGattCallback = object : BluetoothGattCallback() {
+//        override fun onServicesDiscovered(gatt: BluetoothGatt?, status: Int) {
+//            super.onServicesDiscovered(gatt, status)
+//            Log.i("onServicesDiscovered", "onServicesDiscovered" + gatt?.services?.size)
+//            getServices()
+//        }
+//
+//        override fun onConnectionStateChange(gatt: BluetoothGatt?, status: Int, newState: Int) {
+//            super.onConnectionStateChange(gatt, status, newState)
+//            Log.i("onConnectionStateChange", "onConnectionStateChange:$newState")
+//            if (newState == BluetoothProfile.STATE_CONNECTED) {
+//                runOnUiThread { mBluetoothGatt!!.discoverServices() }
+//            }
+//        }
+//
+//        override fun onCharacteristicRead(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?, status: Int) {
+//            super.onCharacteristicRead(gatt, characteristic, status)
+//        }
+//
+//        override fun onCharacteristicChanged(gatt: BluetoothGatt?, characteristic: BluetoothGattCharacteristic?) {
+//            super.onCharacteristicChanged(gatt, characteristic)
+//            val data = characteristic!!.value
+//            val stringBuilder = StringBuilder(data.size)
+//
+//            for (value in data) {
+//                stringBuilder.append(String.format("%02X ", value))
+//            }
+//            Log.e("asdfadsf", String(data))
+//            if (isFrontData) {
+//                string = String(data)
+//                isFrontData = false
+//            } else {
+//                string += String(data)
+//                isFrontData = true
+//            }
+//        }
+//    }
 
     private fun getServices() {
         Log.i("getServices", "getServices")
@@ -117,7 +126,6 @@ class MainActivity : AppCompatActivity() {
             Log.e("uuid", "" + service.uuid.toString() + "\n" + service.characteristics.size)
             if (service.uuid.toString() == "0000ffe0-0000-1000-8000-00805f9b34fb") {
                 val char = service.getCharacteristic(UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb"))
-                Log.e("value", "" + char.descriptors[0].characteristic.descriptors.size)
                 mBluetoothGatt?.readCharacteristic(char)
                 mBluetoothGatt?.setCharacteristicNotification(char, true)
             }
